@@ -9,6 +9,9 @@ import {
   updateAdminRoom,
   deleteAdminRoom,
   updateReservationStatus,
+  getPendingDoorCodes,
+  markDoorCodeRegistered,
+  unmarkDoorCodeRegistered,
 } from '@/lib/api'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
@@ -236,6 +239,10 @@ export default function AdminDashboardPage() {
   const [roomsLoading, setRoomsLoading] = useState(false)
   const [roomModal, setRoomModal] = useState(null) // null | 'create' | room object
 
+  // 도어락 등록 대기 상태
+  const [pendingDoorCodes, setPendingDoorCodes] = useState([])
+  const [pendingLoading, setPendingLoading] = useState(false)
+
   // 인증 확인
   useEffect(() => {
     const token = localStorage.getItem('adminToken')
@@ -270,6 +277,19 @@ export default function AdminDashboardPage() {
     }
   }, [])
 
+  // 도어락 등록 대기 목록 조회
+  const fetchPendingDoorCodes = useCallback(async () => {
+    try {
+      setPendingLoading(true)
+      const data = await getPendingDoorCodes()
+      setPendingDoorCodes(data.pending || [])
+    } catch (err) {
+      console.error('도어락 등록 대기 조회 실패:', err)
+    } finally {
+      setPendingLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'reservations') fetchReservations()
   }, [activeTab, fetchReservations])
@@ -277,6 +297,41 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (activeTab === 'rooms') fetchRooms()
   }, [activeTab, fetchRooms])
+
+  useEffect(() => {
+    if (activeTab === 'doorcodes') fetchPendingDoorCodes()
+  }, [activeTab, fetchPendingDoorCodes])
+
+  // 등록 대기 카운트 (탭 옆 배지용) - 항상 최신 데이터 유지
+  useEffect(() => {
+    fetchPendingDoorCodes()
+    const interval = setInterval(fetchPendingDoorCodes, 30000) // 30초마다 갱신
+    return () => clearInterval(interval)
+  }, [fetchPendingDoorCodes])
+
+  // 도어락 등록 완료 처리
+  const handleMarkRegistered = async (reservationId) => {
+    try {
+      await markDoorCodeRegistered(reservationId)
+      fetchPendingDoorCodes()
+      if (activeTab === 'reservations') fetchReservations()
+    } catch (err) {
+      alert(err.response?.data?.error || '처리 중 오류가 발생했습니다.')
+    }
+  }
+
+  // 클립보드 복사
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // 간단한 피드백 (alert 대신)
+      const el = document.activeElement
+      if (el && el.tagName === 'BUTTON') {
+        const original = el.innerText
+        el.innerText = '복사됨!'
+        setTimeout(() => { el.innerText = original }, 1500)
+      }
+    })
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken')
@@ -402,6 +457,26 @@ export default function AdminDashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             객실 관리
+          </button>
+          <button
+            onClick={() => setActiveTab('doorcodes')}
+            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-left ${
+              activeTab === 'doorcodes'
+                ? 'bg-[#e94560] text-white'
+                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              도어락 등록
+            </span>
+            {pendingDoorCodes.length > 0 && (
+              <span className="bg-yellow-500 text-black text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                {pendingDoorCodes.length}
+              </span>
+            )}
           </button>
 
           <div className="mt-auto">
@@ -662,6 +737,109 @@ export default function AdminDashboardPage() {
                       </div>
                     )
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── 도어락 등록 대기 탭 ── */}
+          {activeTab === 'doorcodes' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  🔐 도어락 등록 대기
+                  {pendingDoorCodes.length > 0 && (
+                    <span className="bg-yellow-500 text-black text-sm px-3 py-1 rounded-full font-bold">
+                      {pendingDoorCodes.length}건
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={fetchPendingDoorCodes}
+                  className="text-gray-400 hover:text-white text-sm flex items-center gap-1"
+                >
+                  새로고침
+                </button>
+              </div>
+              <p className="text-gray-400 text-sm mb-6">
+                결제 완료된 예약의 도어락 비밀번호를 <b className="text-yellow-400">Tuya 앱</b>에서 수동 등록한 후 "등록 완료"를 눌러주세요.
+              </p>
+
+              {pendingLoading ? (
+                <div className="flex justify-center py-16">
+                  <LoadingSpinner text="등록 대기 목록 불러오는 중..." />
+                </div>
+              ) : pendingDoorCodes.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">
+                  <div className="text-5xl mb-3">✅</div>
+                  <p className="text-lg">모든 예약의 도어락이 등록되어 있습니다.</p>
+                  <p className="text-xs text-gray-600 mt-2">새 예약이 들어오면 자동으로 여기에 표시됩니다.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingDoorCodes.map((p) => (
+                    <div
+                      key={p.reservationId}
+                      className="bg-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="text-white font-bold text-lg">{p.guestName}</div>
+                          <div className="text-gray-400 text-sm">{p.guestPhone}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-yellow-400 text-xs font-medium mb-1">등록 필요</div>
+                          <div className="text-gray-500 text-xs">{formatDate(p.checkIn)} ~ {formatDate(p.checkOut)}</div>
+                        </div>
+                      </div>
+
+                      {/* Tuya 앱 등록용 정보 카드 */}
+                      <div className="bg-black/30 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-xs">객실</span>
+                          <span className="text-white font-medium">{p.roomName}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-xs">도어락 ID</span>
+                          <button
+                            onClick={() => copyToClipboard(p.tuyaDeviceId, '디바이스 ID')}
+                            className="text-blue-400 hover:text-blue-300 text-xs font-mono"
+                          >
+                            {p.tuyaDeviceId || '-'} 📋
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-xs">비밀번호</span>
+                          <button
+                            onClick={() => copyToClipboard(p.doorCode, '비밀번호')}
+                            className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 px-3 py-1 rounded-lg font-mono font-bold text-base"
+                          >
+                            {p.doorCode}# 📋
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-xs">유효 기간</span>
+                          <span className="text-white text-sm">
+                            {new Date(p.checkIn).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            {' → '}
+                            {new Date(p.checkOut).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 안내 + 액션 */}
+                      <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg text-xs text-blue-200">
+                        <b>📱 Tuya 앱에서:</b> 스마트 도어락 → 임시 비밀번호 → 위 비밀번호와 기간 입력 → 저장
+                      </div>
+
+                      <button
+                        onClick={() => handleMarkRegistered(p.reservationId)}
+                        className="w-full mt-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 py-3 rounded-xl font-bold transition-all"
+                      >
+                        ✓ Tuya 앱에 등록 완료
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
