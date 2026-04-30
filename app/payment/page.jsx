@@ -74,7 +74,7 @@ export default function PaymentPage() {
         const paymentResult = {
           ...paymentInfo,
           paymentKey: result.paymentKey || `DEMO-${Date.now()}`,
-          doorLockPassword: result.doorLockPassword || result.password || '1234#',
+          doorLockPassword: result.doorCode || result.doorLockPassword || result.password || '------',
           paymentMethod: selectedMethod,
           paidAt: new Date().toISOString(),
         }

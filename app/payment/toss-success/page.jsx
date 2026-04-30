@@ -38,7 +38,7 @@ function TossSuccessContent() {
           paymentKey,
           orderId,
           amount: Number(amount),
-          doorLockPassword: result.doorLockPassword || result.password || '----',
+          doorLockPassword: result.doorCode || result.doorLockPassword || result.password || '------',
           paidAt: new Date().toISOString(),
         }
         sessionStorage.setItem('paymentResult', JSON.stringify(paymentResult))
