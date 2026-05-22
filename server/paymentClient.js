@@ -82,8 +82,12 @@ export function preparePayment(body) {
 
 export async function confirmPayment({ paymentKey, orderId, amount }) {
   const config = readPaymentConfig();
-  const order = paymentOrders.get(orderId);
+  let order = paymentOrders.get(orderId);
   const requestedAmount = Number(amount);
+
+  if (!order) {
+    order = recoverServerlessOrder(config, orderId, requestedAmount);
+  }
 
   if (!order) {
     throw new PaymentConfigError("결제 주문 정보를 찾을 수 없습니다.");
@@ -202,4 +206,16 @@ function sanitizeId(value) {
   return String(value)
     .replace(/[^a-zA-Z0-9_\-=]/g, "_")
     .slice(0, 28);
+}
+
+function recoverServerlessOrder(config, orderId, requestedAmount) {
+  if (config.provider !== "toss") return null;
+  if (!orderId || !Number.isInteger(requestedAmount) || requestedAmount < 100) return null;
+
+  return {
+    amount: requestedAmount,
+    bookingId: sanitizeId(orderId),
+    orderName: "TSSTAY reservation",
+    createdAt: Date.now()
+  };
 }
