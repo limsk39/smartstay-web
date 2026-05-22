@@ -137,7 +137,11 @@ function cacheAdminSettings(settings: AdminSettings) {
 
 function mergeCachedAdminSettings(settings: AdminSettings) {
   const cached = readCachedAdminSettings();
-  return cached ? { ...settings, ...cached } : settings;
+  if (!cached) return settings;
+
+  const serverUpdatedAt = new Date(settings.updatedAt || 0).getTime();
+  const cachedUpdatedAt = new Date(cached.updatedAt || 0).getTime();
+  return cachedUpdatedAt >= serverUpdatedAt ? { ...settings, ...cached } : settings;
 }
 
 export function App() {
@@ -468,7 +472,7 @@ export function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settingsDraft)
     });
-    const savedSettings = { ...json.result, ...settingsDraft };
+    const savedSettings = { ...settingsDraft, ...json.result };
     cacheAdminSettings(savedSettings);
     setAdminSettings(savedSettings);
     setSettingsDraft(savedSettings);

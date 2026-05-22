@@ -309,8 +309,8 @@ function normalizeMember(member) {
 
 function normalizeSettings(settings, detectedAddress) {
   const fallbackAddress = String(detectedAddress || "http://127.0.0.1:4173");
-  const serverAddress = String(settings.serverAddress || fallbackAddress).trim() || fallbackAddress;
-  const assetServerAddress = String(settings.assetServerAddress || serverAddress).trim() || serverAddress;
+  const serverAddress = normalizePublicAddress(settings.serverAddress || fallbackAddress, fallbackAddress);
+  const assetServerAddress = normalizePublicAddress(settings.assetServerAddress || serverAddress, serverAddress);
   return {
     serverAddress,
     assetServerAddress,
@@ -322,6 +322,23 @@ function normalizeSettings(settings, detectedAddress) {
     detectedAddress: fallbackAddress,
     updatedAt: String(settings.updatedAt || new Date().toISOString())
   };
+}
+
+function normalizePublicAddress(value, fallback) {
+  const text = String(value || fallback).trim() || String(fallback);
+  try {
+    const url = new URL(text);
+    if (process.env.VERCEL && url.protocol === "http:" && !isLocalHost(url.hostname)) {
+      url.protocol = "https:";
+    }
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return text;
+  }
+}
+
+function isLocalHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
 function normalizeTime(value, fallback) {

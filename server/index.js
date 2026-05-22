@@ -379,7 +379,11 @@ if (!process.env.VERCEL) {
 export default app;
 
 function getDetectedServerAddress(req) {
-  return `${req.protocol}://${req.get("host") || `127.0.0.1:${port}`}`;
+  const forwardedProto = String(req.get("x-forwarded-proto") || "").split(",")[0].trim();
+  const forwardedHost = String(req.get("x-forwarded-host") || "").split(",")[0].trim();
+  const host = forwardedHost || req.get("host") || `127.0.0.1:${port}`;
+  const protocol = forwardedProto || (process.env.VERCEL ? "https" : req.protocol);
+  return `${protocol}://${host}`;
 }
 
 let cleanupRunning = false;
