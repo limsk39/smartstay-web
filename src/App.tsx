@@ -135,15 +135,6 @@ function cacheAdminSettings(settings: AdminSettings) {
   }
 }
 
-function mergeCachedAdminSettings(settings: AdminSettings) {
-  const cached = readCachedAdminSettings();
-  if (!cached) return settings;
-
-  const serverUpdatedAt = new Date(settings.updatedAt || 0).getTime();
-  const cachedUpdatedAt = new Date(cached.updatedAt || 0).getTime();
-  return cachedUpdatedAt >= serverUpdatedAt ? { ...settings, ...cached } : settings;
-}
-
 export function App() {
   const [mode, setMode] = useState<AppMode>("customer");
   const [rooms, setRooms] = useState<Room[]>(defaultRooms);
@@ -234,7 +225,8 @@ export function App() {
     ]);
     setReservations(reservationJson.result);
     setMembers(memberJson.result);
-    setAdminSettings(mergeCachedAdminSettings(settingsJson.result));
+    cacheAdminSettings(settingsJson.result);
+    setAdminSettings(settingsJson.result);
   }
 
   async function refreshTuyaStatus() {
@@ -248,10 +240,19 @@ export function App() {
   }
 
   async function loadLatestAdminSettings() {
-    const json = await apiJson<AdminSettings>("/api/admin/settings");
-    const mergedSettings = mergeCachedAdminSettings(json.result);
-    setAdminSettings(mergedSettings);
-    return mergedSettings;
+    try {
+      const json = await apiJson<AdminSettings>("/api/admin/settings");
+      cacheAdminSettings(json.result);
+      setAdminSettings(json.result);
+      return json.result;
+    } catch (error) {
+      const cached = readCachedAdminSettings();
+      if (cached) {
+        setAdminSettings(cached);
+        return cached;
+      }
+      throw error;
+    }
   }
 
   async function resumePaymentIfNeeded() {
