@@ -68,12 +68,28 @@ button {
   gap: 16px;
 }
 
+.app-topbar {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: start;
+}
+
+.app-topbar > div {
+  grid-column: 2;
+  text-align: center;
+}
+
+.app-topbar .icon-button {
+  grid-column: 3;
+  justify-self: end;
+}
+
 .hotel-cover-logo {
   width: 96px;
   height: 96px;
   object-fit: contain;
   display: block;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
   border-radius: 8px;
   background: #ffffff;
 }
@@ -898,6 +914,27 @@ pre {
   gap: 16px;
   border-top: 1px solid #dfe5dc;
   padding-top: 12px;
+}
+
+.reservation-cancel-row .admin-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.reservation-room-change {
+  min-width: 170px;
+  gap: 5px;
+}
+
+.reservation-room-change select {
+  min-height: 42px;
+  border: 1px solid #cfd8ce;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17211c;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 800;
 }
 
 .reservation-cancel-row strong,

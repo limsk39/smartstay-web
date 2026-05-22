@@ -148,6 +148,20 @@ export function createAdminStore(rootDir) {
     return reservations[index];
   }
 
+  function changeReservationRoom(reservationId, patch) {
+    const reservations = readReservations();
+    const index = reservations.findIndex((reservation) => reservation.id === reservationId);
+    if (index < 0) {
+      throw new AdminStoreError("예약을 찾을 수 없습니다.", 404);
+    }
+    reservations[index] = normalizeReservation({
+      ...reservations[index],
+      ...patch
+    });
+    writeJson(reservationFilePath, reservations);
+    return reservations[index];
+  }
+
   function readSettings(detectedAddress) {
     return normalizeSettings(readJsonObject(settingsFilePath), detectedAddress);
   }
@@ -177,6 +191,7 @@ export function createAdminStore(rootDir) {
   return {
     brandingUploadDir,
     cancelReservation,
+    changeReservationRoom,
     checkOutReservation,
     createMember,
     createReservation,

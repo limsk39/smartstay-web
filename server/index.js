@@ -208,6 +208,68 @@ app.post("/api/admin/reservations/:reservationId/check-out", async (req, res, ne
   }
 });
 
+app.patch("/api/admin/reservations/:reservationId/room", async (req, res, next) => {
+  try {
+    const reservation = adminStore
+      .readReservations()
+      .find((item) => item.id === req.params.reservationId);
+    if (!reservation) {
+      throw new AdminStoreError("예약을 찾을 수 없습니다.", 404);
+    }
+
+    const nextRoomId = String(req.body?.roomId || "");
+    const nextRoom = roomStore.readRooms().find((room) => room.id === nextRoomId);
+    if (!nextRoom) {
+      throw new AdminStoreError("변경할 객실을 찾을 수 없습니다.", 404);
+    }
+
+    const conflict = adminStore.readReservations().find((item) => {
+      if (item.id === reservation.id || item.roomId !== nextRoomId || !shouldBlockRoomChange(item)) return false;
+      return reservation.checkInDate < item.checkOutDate && reservation.checkOutDate > item.checkInDate;
+    });
+    if (conflict) {
+      throw new AdminStoreError("해당 기간에 이미 예약된 객실입니다.", 409);
+    }
+
+    let passwordPatch = {};
+    if (shouldReissueDoorPassword(reservation)) {
+      const plainPassword = String(reservation.doorPasswordCode).replace(/\D/g, "").slice(0, 6);
+      const newPassword = await issueTemporaryPassword({
+        roomId: nextRoom.id,
+        guestName: reservation.guestName,
+        guestPhone: reservation.guestPhone,
+        bookingId: reservation.bookingId || reservation.id,
+        deviceId: nextRoom.deviceId,
+        password: plainPassword,
+        effectiveAt: reservation.doorPasswordEffectiveAt,
+        expiresAt: reservation.doorPasswordExpiresAt
+      });
+      await deleteReservationDoorPassword(reservation, "room-change");
+      passwordPatch = {
+        doorPasswordCode: `${newPassword.code}*`,
+        doorPasswordEffectiveAt: newPassword.effectiveAt,
+        doorPasswordExpiresAt: newPassword.expiresAt,
+        doorPasswordStatus: Number(newPassword.tuya?.delivery?.delivery_status) === 2 ? "issued" : "failed",
+        tuyaPasswordId: newPassword.passwordId,
+        doorPasswordDeliveryStatus: newPassword.tuya?.delivery?.delivery_status,
+        doorLockDeviceId: newPassword.deviceId,
+        doorPasswordDeletedAt: undefined,
+        doorPasswordDeleteStatus: undefined
+      };
+    }
+
+    res.json({
+      success: true,
+      result: adminStore.changeReservationRoom(req.params.reservationId, {
+        roomId: nextRoom.id,
+        ...passwordPatch
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/admin/members", (_req, res) => {
   res.json({ success: true, result: adminStore.readMembers() });
 });
@@ -351,6 +413,19 @@ function shouldAutoCheckOut(reservation, now) {
     return !Number.isNaN(endOfCheckoutDate.getTime()) && endOfCheckoutDate <= now;
   }
   return false;
+}
+
+function shouldBlockRoomChange(reservation) {
+  return reservation.status === "reserved" || reservation.status === "checked-in";
+}
+
+function shouldReissueDoorPassword(reservation) {
+  const plainPassword = String(reservation.doorPasswordCode || "").replace(/\D/g, "").slice(0, 6);
+  return (
+    shouldBlockRoomChange(reservation) &&
+    plainPassword.length === 6 &&
+    Boolean(reservation.doorPasswordEffectiveAt && reservation.doorPasswordExpiresAt)
+  );
 }
 
 async function deleteReservationDoorPassword(reservation, reason) {

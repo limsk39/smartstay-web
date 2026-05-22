@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   BedDouble,
   Calendar,
@@ -144,6 +144,7 @@ export function App() {
   const [roomDraft, setRoomDraft] = useState<Room | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<AdminSettings | null>(null);
   const [adminActionBusyId, setAdminActionBusyId] = useState("");
+  const checkInInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     refreshAll();
@@ -491,6 +492,30 @@ export function App() {
     }
   }
 
+  async function changeReservationRoom(reservationId: string, roomId: string) {
+    setAdminActionBusyId(`room:${reservationId}`);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      await apiJson<Reservation>(`/api/admin/reservations/${reservationId}/room`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId })
+      });
+      await refreshAll();
+      setSuccessMessage("예약 객실이 변경되었습니다. 임시비밀번호가 있으면 새 객실 도어락으로 다시 발급했습니다.");
+    } catch (error) {
+      setErrorMessage(normalizeErrorMessage(error));
+    } finally {
+      setAdminActionBusyId("");
+    }
+  }
+
+  function openCheckInCalendar() {
+    checkInInputRef.current?.focus();
+    checkInInputRef.current?.showPicker?.();
+  }
+
   async function createMember() {
     const json = await apiJson<TeamMember>("/api/admin/members", {
       method: "POST",
@@ -524,7 +549,7 @@ export function App() {
               <p className="eyebrow">객실 예약</p>
               <h1>{hotelName}</h1>
             </div>
-            <button className="icon-button" type="button" aria-label="예약">
+            <button className="icon-button" onClick={openCheckInCalendar} type="button" aria-label="?? ??">
               <Calendar size={22} />
             </button>
           </div>
@@ -561,7 +586,7 @@ export function App() {
             <div className="date-grid">
               <label>
                 체크인
-                <input type="date" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} />
+                <input ref={checkInInputRef} type="date" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} />
               </label>
               <label>
                 체크아웃
@@ -627,6 +652,7 @@ export function App() {
               adminTab={adminTab}
               assetServerAddress={assetServerAddress}
               cancelReservation={cancelReservation}
+              changeReservationRoom={changeReservationRoom}
               checkOutReservation={checkOutReservation}
               createMember={createMember}
               createRoom={createRoom}
@@ -665,6 +691,7 @@ function AdminConsole({
   adminTab,
   assetServerAddress,
   cancelReservation,
+  changeReservationRoom,
   checkOutReservation,
   createMember,
   createRoom,
@@ -695,6 +722,7 @@ function AdminConsole({
   adminTab: AdminTab;
   assetServerAddress: string;
   cancelReservation: (reservationId: string) => Promise<void>;
+  changeReservationRoom: (reservationId: string, roomId: string) => Promise<void>;
   checkOutReservation: (reservationId: string) => Promise<void>;
   createMember: () => Promise<void>;
   createRoom: () => Promise<void>;
@@ -720,6 +748,7 @@ function AdminConsole({
   uploadRoomImage: (file: File) => Promise<void>;
 }) {
   const selectedRoomReservation = activeReservations.find((reservation) => reservation.roomId === adminRoomId);
+  const [reservationRoomDrafts, setReservationRoomDrafts] = useState<Record<string, string>>({});
 
   return (
     <>
@@ -863,6 +892,8 @@ function AdminConsole({
             const canManageReservation = isActiveReservation(reservation);
             const checkoutBusy = adminActionBusyId === `checkout:${reservation.id}`;
             const cancelBusy = adminActionBusyId === `cancel:${reservation.id}`;
+            const roomChangeBusy = adminActionBusyId === `room:${reservation.id}`;
+            const nextRoomId = reservationRoomDrafts[reservation.id] || reservation.roomId;
             return (
             <article className="reservation-cancel-row" key={reservation.id}>
               <div>
@@ -885,6 +916,33 @@ function AdminConsole({
               </div>
               {canManageReservation ? (
                 <div className="admin-actions">
+                  <label className="reservation-room-change">
+                    객실변경
+                    <select
+                      value={nextRoomId}
+                      onChange={(event) =>
+                        setReservationRoomDrafts((current) => ({
+                          ...current,
+                          [reservation.id]: event.target.value
+                        }))
+                      }
+                    >
+                      {rooms.map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="secondary-action"
+                    disabled={Boolean(adminActionBusyId) || nextRoomId === reservation.roomId}
+                    onClick={() => changeReservationRoom(reservation.id, nextRoomId)}
+                    type="button"
+                  >
+                    <Save size={18} />
+                    {roomChangeBusy ? "처리 중" : "객실변경 저장"}
+                  </button>
                   <button
                     className="secondary-action"
                     disabled={Boolean(adminActionBusyId)}
