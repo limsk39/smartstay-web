@@ -22,17 +22,20 @@ export class AdminStoreError extends Error {
 }
 
 export function createAdminStore(rootDir) {
-  const dataDir = path.join(rootDir, "server", "data");
-  const brandingUploadDir = path.join(rootDir, "server", "uploads", "branding");
+  const dataDir = process.env.VERCEL ? path.join("/tmp", "staypass-data") : path.join(rootDir, "server", "data");
+  const brandingUploadDir = process.env.VERCEL
+    ? path.join("/tmp", "staypass-uploads", "branding")
+    : path.join(rootDir, "server", "uploads", "branding");
   const reservationFilePath = path.join(dataDir, "reservations.json");
   const memberFilePath = path.join(dataDir, "members.json");
   const settingsFilePath = path.join(dataDir, "settings.json");
+  const seedDataDir = path.join(rootDir, "server", "data");
 
   ensureDirectory(dataDir);
   ensureDirectory(brandingUploadDir);
-  ensureFile(reservationFilePath, []);
-  ensureFile(memberFilePath, defaultMembers);
-  ensureFile(settingsFilePath, {
+  ensureFile(reservationFilePath, readSeedJson(path.join(seedDataDir, "reservations.json"), []));
+  ensureFile(memberFilePath, readSeedJson(path.join(seedDataDir, "members.json"), defaultMembers));
+  ensureFile(settingsFilePath, readSeedJson(path.join(seedDataDir, "settings.json"), {
     serverAddress: "",
     assetServerAddress: "",
     hotelName: "호텔 TSSTAY",
@@ -41,7 +44,7 @@ export function createAdminStore(rootDir) {
     passwordStartTime: "15:00",
     passwordEndTime: "11:00",
     updatedAt: new Date().toISOString()
-  });
+  }));
 
   function readReservations() {
     return readJsonArray(reservationFilePath).map(normalizeReservation);
@@ -221,6 +224,14 @@ function readJsonObject(filePath) {
 
 function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function readSeedJson(filePath, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
 }
 
 function normalizeReservation(reservation) {

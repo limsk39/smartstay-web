@@ -46,14 +46,17 @@ export class RoomStoreError extends Error {
 }
 
 export function createRoomStore(rootDir) {
-  const dataDir = path.join(rootDir, "server", "data");
-  const uploadDir = path.join(rootDir, "server", "uploads", "rooms");
+  const dataDir = process.env.VERCEL ? path.join("/tmp", "staypass-data") : path.join(rootDir, "server", "data");
+  const uploadDir = process.env.VERCEL
+    ? path.join("/tmp", "staypass-uploads", "rooms")
+    : path.join(rootDir, "server", "uploads", "rooms");
   const roomFilePath = path.join(dataDir, "rooms.json");
+  const seedRoomFilePath = path.join(rootDir, "server", "data", "rooms.json");
 
   ensureDirectory(dataDir);
   ensureDirectory(uploadDir);
   if (!fs.existsSync(roomFilePath)) {
-    writeJson(roomFilePath, defaultRooms);
+    writeJson(roomFilePath, readSeedJson(seedRoomFilePath, defaultRooms));
   }
 
   function readRooms() {
@@ -132,6 +135,14 @@ function ensureDirectory(dirPath) {
 
 function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function readSeedJson(filePath, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
 }
 
 function normalizeRoom(room) {
