@@ -284,6 +284,26 @@ textarea {
   gap: 11px;
 }
 
+.reservation-time-summary {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #d7ddd4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 13px;
+}
+
+.reservation-time-summary span {
+  color: #647067;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.reservation-time-summary strong {
+  color: #17211c;
+  font-size: 0.96rem;
+}
+
 .payment-bar {
   position: sticky;
   bottom: 0;

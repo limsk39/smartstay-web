@@ -66,6 +66,7 @@ type ApiResult<T> = {
 };
 
 const adminSessionKey = "staypass:admin-session";
+const adminSettingsCacheKey = "staypass:admin-settings";
 const defaultAdminPassword = "admin1234";
 const minimumPaymentAmount = 100;
 
@@ -114,6 +115,29 @@ function toDateInput(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function readCachedAdminSettings() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(adminSettingsCacheKey);
+    return raw ? (JSON.parse(raw) as AdminSettings) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheAdminSettings(settings: AdminSettings) {
+  try {
+    window.localStorage.setItem(adminSettingsCacheKey, JSON.stringify(settings));
+  } catch {
+    // Ignore local storage failures; the server response is still used for this session.
+  }
+}
+
+function mergeCachedAdminSettings(settings: AdminSettings) {
+  const cached = readCachedAdminSettings();
+  return cached ? { ...settings, ...cached } : settings;
 }
 
 export function App() {
@@ -179,6 +203,9 @@ export function App() {
   const assetServerAddress = adminSettings?.assetServerAddress || window.location.origin;
   const hotelName = adminSettings?.hotelName || "호텔 TSSTAY";
   const coverLogoUrl = resolveAssetUrl(adminSettings?.coverLogoUrl || "/uploads/branding/tsstay-logo.png", assetServerAddress);
+  const passwordStartTime = adminSettings?.passwordStartTime || "15:00";
+  const passwordEndTime = adminSettings?.passwordEndTime || "11:00";
+  const reservationWindowText = `${checkInDate} ${passwordStartTime} ~ ${checkOutDate} ${passwordEndTime}`;
 
   useEffect(() => {
     if (customerRooms.length && !customerRooms.some((room) => room.id === selectedRoomId)) {
@@ -203,7 +230,7 @@ export function App() {
     ]);
     setReservations(reservationJson.result);
     setMembers(memberJson.result);
-    setAdminSettings(settingsJson.result);
+    setAdminSettings(mergeCachedAdminSettings(settingsJson.result));
   }
 
   async function refreshTuyaStatus() {
@@ -218,8 +245,9 @@ export function App() {
 
   async function loadLatestAdminSettings() {
     const json = await apiJson<AdminSettings>("/api/admin/settings");
-    setAdminSettings(json.result);
-    return json.result;
+    const mergedSettings = mergeCachedAdminSettings(json.result);
+    setAdminSettings(mergedSettings);
+    return mergedSettings;
   }
 
   async function resumePaymentIfNeeded() {
@@ -440,8 +468,10 @@ export function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settingsDraft)
     });
-    setAdminSettings(json.result);
-    setSettingsDraft(json.result);
+    const savedSettings = { ...json.result, ...settingsDraft };
+    cacheAdminSettings(savedSettings);
+    setAdminSettings(savedSettings);
+    setSettingsDraft(savedSettings);
     setSuccessMessage("관리자 설정이 저장되었습니다. 다음 임시비밀번호 발급부터 이 시간이 적용됩니다.");
   }
 
@@ -452,6 +482,7 @@ export function App() {
       method: "POST",
       body: formData
     });
+    cacheAdminSettings(json.result);
     setAdminSettings(json.result);
     setSettingsDraft(json.result);
   }
@@ -592,6 +623,10 @@ export function App() {
                 체크아웃
                 <input type="date" value={checkOutDate} onChange={(event) => setCheckOutDate(event.target.value)} />
               </label>
+            </div>
+            <div className="reservation-time-summary">
+              <span>예약 이용 시간</span>
+              <strong>{reservationWindowText}</strong>
             </div>
           </div>
 
