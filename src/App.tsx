@@ -200,7 +200,9 @@ export function App() {
   const coverLogoUrl = resolveAssetUrl(adminSettings?.coverLogoUrl || "/uploads/branding/tsstay-logo.png", assetServerAddress);
   const passwordStartTime = adminSettings?.passwordStartTime || "15:00";
   const passwordEndTime = adminSettings?.passwordEndTime || "11:00";
-  const reservationWindowText = `${checkInDate} ${passwordStartTime} ~ ${checkOutDate} ${passwordEndTime}`;
+  const reservationWindowText = adminSettings
+    ? `${checkInDate} ${passwordStartTime} ~ ${checkOutDate} ${passwordEndTime}`
+    : "설정 확인 중";
 
   useEffect(() => {
     if (customerRooms.length && !customerRooms.some((room) => room.id === selectedRoomId)) {
