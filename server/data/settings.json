@@ -1,0 +1,10 @@
+{
+  "serverAddress": "http://192.168.0.103:4173",
+  "assetServerAddress": "http://192.168.0.103:4173",
+  "hotelName": "호텔 TSSTAY",
+  "coverLogoUrl": "/uploads/branding/tsstay-logo.png",
+  "adminPassword": "admin1234",
+  "passwordStartTime": "07:00",
+  "passwordEndTime": "11:00",
+  "updatedAt": "2026-05-15T07:02:18.415Z"
+}

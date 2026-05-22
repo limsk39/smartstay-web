@@ -1,0 +1,28 @@
+[
+  {
+    "id": "member-owner",
+    "name": "관리자",
+    "phone": "010-5504-0039",
+    "role": "owner",
+    "permissions": [
+      "객실 관리",
+      "예약 확인",
+      "구성원 관리",
+      "요금 변경"
+    ],
+    "active": true,
+    "createdAt": "2026-05-14T00:56:14.781Z"
+  },
+  {
+    "id": "member_1778722953208_qjlkj",
+    "name": "새 구성원",
+    "phone": "",
+    "role": "front-desk",
+    "permissions": [
+      "예약 확인",
+      "비밀번호 발급 확인"
+    ],
+    "active": true,
+    "createdAt": "2026-05-14T01:42:33.209Z"
+  }
+]

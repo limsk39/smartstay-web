@@ -1,0 +1,72 @@
+[
+  {
+    "id": "room-1201",
+    "name": "101",
+    "type": "프리미어 더블",
+    "floor": "12층",
+    "deviceId": "eb9f79d5b0aeec3514mmrg",
+    "nightlyRate": 100,
+    "memo": "",
+    "imageUrl": "/uploads/rooms/1778829632091-3h8rtp5t.jpg"
+  },
+  {
+    "id": "room-502",
+    "name": "701",
+    "type": "스탠다드 더블",
+    "floor": "5층",
+    "deviceId": "eb9f79d5b0aeec3514mmrg",
+    "nightlyRate": 100,
+    "memo": "",
+    "imageUrl": "/uploads/rooms/1778829902888-uvjriqim.jpg"
+  },
+  {
+    "id": "room-1778722932178",
+    "name": "702",
+    "type": "객실 형태 입력",
+    "floor": "1층",
+    "deviceId": "미연결",
+    "nightlyRate": 100000,
+    "memo": "",
+    "imageUrl": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    "id": "room-1778736056386",
+    "name": "703",
+    "type": "객실 형태 입력",
+    "floor": "1층",
+    "deviceId": "미연결",
+    "nightlyRate": 100000,
+    "memo": "",
+    "imageUrl": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    "id": "room-1778738257855",
+    "name": "705",
+    "type": "객실 형태 입력",
+    "floor": "1층",
+    "deviceId": "미연결",
+    "nightlyRate": 100000,
+    "memo": "",
+    "imageUrl": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    "id": "room-1778738262688",
+    "name": "706",
+    "type": "객실 형태 입력",
+    "floor": "1층",
+    "deviceId": "미연결",
+    "nightlyRate": 100000,
+    "memo": "",
+    "imageUrl": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    "id": "room-1778829305725",
+    "name": "707",
+    "type": "객실 형태 입력",
+    "floor": "1층",
+    "deviceId": "미연결",
+    "nightlyRate": 100,
+    "memo": "",
+    "imageUrl": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80"
+  }
+]
