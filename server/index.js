@@ -67,6 +67,12 @@ const roomImageUpload = multer({
 });
 
 app.use(express.json({ limit: "1mb" }));
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
 app.use("/uploads", express.static(path.join(rootDir, "server", "uploads")));
 
 app.get("/api/tuya/status", (_req, res) => {

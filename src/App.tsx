@@ -1153,7 +1153,14 @@ function AdminConsole({
 }
 
 async function apiJson<T>(url: string, init?: RequestInit): Promise<ApiResult<T>> {
-  const response = await fetch(url, init);
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...init,
+    headers: {
+      "Cache-Control": "no-cache",
+      ...(init?.headers || {})
+    }
+  });
   const json = (await response.json().catch(() => null)) as ApiResult<T> | null;
   if (!response.ok || !json?.success) {
     throw new Error(json?.message || `${url} 요청에 실패했습니다.`);

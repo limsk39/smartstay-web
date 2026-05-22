@@ -1,10 +1,10 @@
 {
-  "serverAddress": "http://192.168.0.103:4173",
-  "assetServerAddress": "http://192.168.0.103:4173",
+  "serverAddress": "https://smartstay-web.vercel.app",
+  "assetServerAddress": "https://smartstay-web.vercel.app",
   "hotelName": "호텔 TSSTAY",
   "coverLogoUrl": "/uploads/branding/tsstay-logo.png",
   "adminPassword": "admin1234",
-  "passwordStartTime": "07:00",
+  "passwordStartTime": "03:00",
   "passwordEndTime": "11:00",
-  "updatedAt": "2026-05-15T07:02:18.415Z"
+  "updatedAt": "2026-05-22T07:52:47.425Z"
 }
