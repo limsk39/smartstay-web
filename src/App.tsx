@@ -799,6 +799,54 @@ function AdminConsole({
                       {activeReservation.guestName} {activeReservation.guestPhone}
                     </small>
                   )}
+                  {activeReservation && (
+                    <div className="room-card-actions">
+                      <label className="reservation-room-change">
+                        객실변경
+                        <select
+                          value={reservationRoomDrafts[activeReservation.id] || activeReservation.roomId}
+                          onChange={(event) =>
+                            setReservationRoomDrafts((current) => ({
+                              ...current,
+                              [activeReservation.id]: event.target.value
+                            }))
+                          }
+                        >
+                          {rooms.map((candidateRoom) => (
+                            <option key={candidateRoom.id} value={candidateRoom.id}>
+                              {candidateRoom.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        className="secondary-action"
+                        disabled={
+                          Boolean(adminActionBusyId) ||
+                          (reservationRoomDrafts[activeReservation.id] || activeReservation.roomId) === activeReservation.roomId
+                        }
+                        onClick={() =>
+                          changeReservationRoom(
+                            activeReservation.id,
+                            reservationRoomDrafts[activeReservation.id] || activeReservation.roomId
+                          )
+                        }
+                        type="button"
+                      >
+                        <Save size={18} />
+                        {adminActionBusyId === `room:${activeReservation.id}` ? "처리 중" : "객실변경 저장"}
+                      </button>
+                      <button
+                        className="danger-action"
+                        disabled={Boolean(adminActionBusyId)}
+                        onClick={() => cancelReservation(activeReservation.id)}
+                        type="button"
+                      >
+                        <XCircle size={18} />
+                        {adminActionBusyId === `cancel:${activeReservation.id}` ? "처리 중" : "결제/예약 취소"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </article>
             );
@@ -888,6 +936,12 @@ function AdminConsole({
 
       {adminTab === "reservations" && (
         <div className="reservation-history-list">
+          {!reservations.length && (
+            <div className="empty-admin-panel">
+              <strong>현재 저장된 예약이 없습니다.</strong>
+              <p>고객이 예약과 결제를 완료하면 이곳에 결제취소와 객실변경 버튼이 표시됩니다.</p>
+            </div>
+          )}
           {reservations.map((reservation) => {
             const canManageReservation = isActiveReservation(reservation);
             const checkoutBusy = adminActionBusyId === `checkout:${reservation.id}`;

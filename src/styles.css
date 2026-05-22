@@ -762,6 +762,19 @@ pre {
   color: #647067;
 }
 
+.room-card-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 4px;
+  border-top: 1px solid #dfe5dc;
+  padding-top: 10px;
+}
+
+.room-card-actions button {
+  width: 100%;
+}
+
 .reservation-line {
   display: grid;
   gap: 3px;
@@ -871,6 +884,23 @@ pre {
 .reservation-history-list {
   display: grid;
   gap: 10px;
+}
+
+.empty-admin-panel {
+  border: 1px solid #d7ddd4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.empty-admin-panel strong,
+.empty-admin-panel p {
+  margin: 0;
+}
+
+.empty-admin-panel p {
+  margin-top: 6px;
+  color: #647067;
 }
 
 .reservation-history-row {
