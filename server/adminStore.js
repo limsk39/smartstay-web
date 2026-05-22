@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { BlobNotFoundError, get, put } from "@vercel/blob";
 
 const defaultMembers = [
   {
@@ -29,6 +30,7 @@ export function createAdminStore(rootDir) {
   const reservationFilePath = path.join(dataDir, "reservations.json");
   const memberFilePath = path.join(dataDir, "members.json");
   const settingsFilePath = path.join(dataDir, "settings.json");
+  const settingsBlobPath = "data/settings.json";
   const seedDataDir = path.join(rootDir, "server", "data");
 
   ensureDirectory(dataDir);
@@ -162,20 +164,21 @@ export function createAdminStore(rootDir) {
     return reservations[index];
   }
 
-  function readSettings(detectedAddress) {
-    return normalizeSettings(readJsonObject(settingsFilePath), detectedAddress);
+  async function readSettings(detectedAddress) {
+    return normalizeSettings(await readSettingsObject(), detectedAddress);
   }
 
-  function updateSettings(input, detectedAddress) {
+  async function updateSettings(input, detectedAddress) {
+    const currentSettings = await readSettingsObject();
     const settings = normalizeSettings(
       {
-        ...readJsonObject(settingsFilePath),
+        ...currentSettings,
         ...input,
         updatedAt: new Date().toISOString()
       },
       detectedAddress
     );
-    writeJson(settingsFilePath, {
+    const persistedSettings = {
       serverAddress: settings.serverAddress,
       assetServerAddress: settings.assetServerAddress,
       hotelName: settings.hotelName,
@@ -184,8 +187,46 @@ export function createAdminStore(rootDir) {
       passwordStartTime: settings.passwordStartTime,
       passwordEndTime: settings.passwordEndTime,
       updatedAt: settings.updatedAt
-    });
+    };
+    writeJson(settingsFilePath, persistedSettings);
+    await writeBlobJson(settingsBlobPath, persistedSettings);
     return settings;
+  }
+
+  async function readSettingsObject() {
+    const seedSettings = readJsonObject(settingsFilePath);
+    const blobSettings = await readBlobJsonObject(settingsBlobPath);
+    if (blobSettings) return blobSettings;
+    await writeBlobJson(settingsBlobPath, seedSettings);
+    return seedSettings;
+  }
+
+  async function readBlobJsonObject(pathname) {
+    if (!canUseBlobStorage()) return null;
+    try {
+      const blob = await get(pathname, { access: "private" });
+      const text = await new Response(blob.stream).text();
+      const value = JSON.parse(text);
+      return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+    } catch (error) {
+      if (error instanceof BlobNotFoundError) return null;
+      console.warn("Vercel Blob settings read failed", error.message);
+      return null;
+    }
+  }
+
+  async function writeBlobJson(pathname, value) {
+    if (!canUseBlobStorage()) return;
+    try {
+      await put(pathname, JSON.stringify(value, null, 2), {
+        access: "private",
+        allowOverwrite: true,
+        contentType: "application/json",
+        cacheControlMaxAge: 60
+      });
+    } catch (error) {
+      console.warn("Vercel Blob settings write failed", error.message);
+    }
   }
 
   return {
@@ -247,6 +288,10 @@ function readSeedJson(filePath, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function canUseBlobStorage() {
+  return Boolean(process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN);
 }
 
 function normalizeReservation(reservation) {

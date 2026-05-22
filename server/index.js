@@ -130,19 +130,23 @@ app.post("/api/rooms/:roomId/image", roomImageUpload.single("image"), (req, res,
   }
 });
 
-app.get("/api/admin/settings", (req, res) => {
-  res.json({ success: true, result: adminStore.readSettings(getDetectedServerAddress(req)) });
-});
-
-app.patch("/api/admin/settings", (req, res, next) => {
+app.get("/api/admin/settings", async (req, res, next) => {
   try {
-    res.json({ success: true, result: adminStore.updateSettings(req.body, getDetectedServerAddress(req)) });
+    res.json({ success: true, result: await adminStore.readSettings(getDetectedServerAddress(req)) });
   } catch (error) {
     next(error);
   }
 });
 
-app.post("/api/admin/branding/logo", brandingImageUpload.single("image"), (req, res, next) => {
+app.patch("/api/admin/settings", async (req, res, next) => {
+  try {
+    res.json({ success: true, result: await adminStore.updateSettings(req.body, getDetectedServerAddress(req)) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/branding/logo", brandingImageUpload.single("image"), async (req, res, next) => {
   try {
     if (!req.file) {
       throw new AdminStoreError("업로드할 로고 이미지가 없습니다.");
@@ -150,7 +154,7 @@ app.post("/api/admin/branding/logo", brandingImageUpload.single("image"), (req, 
     const coverLogoUrl = `/uploads/branding/${req.file.filename}`;
     res.json({
       success: true,
-      result: adminStore.updateSettings({ coverLogoUrl }, getDetectedServerAddress(req))
+      result: await adminStore.updateSettings({ coverLogoUrl }, getDetectedServerAddress(req))
     });
   } catch (error) {
     next(error);
